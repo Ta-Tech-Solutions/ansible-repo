@@ -1,0 +1,21 @@
+---
+
+- hosts: all
+  become: true
+  tasks:
+  
+  - name: install python3
+    yum:
+       name: python3
+       state: absent
+
+  - name: install postgresql13 package
+    yum:
+       name: postgresql13
+       state: absent
+
+  - name: install pg_activity
+    yum:
+       name: pg_activity
+       state: absent
+
