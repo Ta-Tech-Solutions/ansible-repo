@@ -18,15 +18,15 @@
       state: started
       enabled: yes
 
-  - name: Open postgresql service on firewall
-    firewalld:
-      source: "{{ hostvars[item]['ansible_ens3']['ipv4']['address'] }}"
-      zone: internal
-      state: enabled
-      service: postgresql
-      permanent: yes
+  #- name: Open postgresql service on firewall
+  #  firewalld:
+  #    source: "{{ hostvars[item]['ansible_ens3']['ipv4']['address'] }}"
+  #    zone: internal
+  #    state: enabled
+  #    service: postgresql
+  #    permanent: yes
   
-  - name: Reload firewalld
-    systemd:
-      state: reloaded
-      name: firewalld
+  #- name: Reload firewalld
+  #  systemd:
+  #    state: reloaded
+  #    name: firewalld
