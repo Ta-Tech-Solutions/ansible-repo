@@ -5,7 +5,7 @@
   tasks:
 
   - name: Install PostgreSQL 12 packages
-    dnf:
+    yum:
       name:
       - postgresql12
       - postgresql12-server
@@ -15,6 +15,7 @@
   - name: Enable database service on boot
     systemd:
       name: postgresql-12
+      state: started
       enabled: yes
 
   - name: Open postgresql service on firewall
