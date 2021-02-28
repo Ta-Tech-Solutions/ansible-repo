@@ -10,7 +10,6 @@
       - postgresql12
       - postgresql12-server
       - postgresql12-contrib
-      - python3-psycopg2
       state: present
 
   - name: Enable database service on boot
