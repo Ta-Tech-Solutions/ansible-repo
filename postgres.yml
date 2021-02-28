@@ -4,18 +4,24 @@
   become: true
   tasks:
   
+  - name: run update on servers
+    yum: 
+      update_only: yes
+
   - name: install python3
     yum:
        name: python3
        state: latest
+    when: ansible_distribution == "centus"   
 
   - name: install postgresql13 package
     yum:
        name: postgresql13
        state: latest
+    when: ansible_distribution == "centus"
 
   - name: install pg_activity
     yum:
        name: pg_activity
        state: latest
-
+    when: ansible_distribution == "centus"
