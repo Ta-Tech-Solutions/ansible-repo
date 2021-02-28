@@ -1,0 +1,6 @@
+
+db_user: dbusername
+db_name: dbname
+db_password: dbpassword
+postgresql_data_dir: /var/lib/pgsql/12/data
+postgresql_bin_path: /usr/pgsql-12/bin/postgresql-12-setup
