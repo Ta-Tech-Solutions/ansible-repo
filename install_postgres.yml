@@ -3,7 +3,7 @@
 - hosts: all
   become: true
   tasks:
-  vars: main.yml
+  
 
   - name: Install PostgreSQL 12 packages
     yum:
