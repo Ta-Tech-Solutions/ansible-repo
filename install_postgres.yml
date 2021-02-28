@@ -3,6 +3,7 @@
 - hosts: all
   become: true
   tasks:
+  vars: main.yml
 
   - name: Install PostgreSQL 12 packages
     yum:
@@ -16,9 +17,8 @@
   
   - name: ensure postgresql data directory exists.
     file:
-      path: /var/lib/pgsql/12/data
-      owner: postgres
-      group: postgres
+      path: "{{ postgresql_data_dir }}"
+      owner: "{{ postgresql_user }}"
       state: directory
       mode: 0700
 
