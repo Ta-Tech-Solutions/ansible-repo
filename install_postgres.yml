@@ -7,16 +7,38 @@
   - name: Install PostgreSQL 12 packages
     yum:
       name: 
-      - postgresql12
+      - https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
       - postgresql12-server
-      - postgresql12-contrib
+  #    - postgresql12
+  #    - postgresql12-server
+  #    - postgresql12-contrib
       state: present
+  
+  - name: ensure postgresql data directory exists.
+    file:
+      path: /var/lib/pgsql/12/data
+      owner: postgres
+      group: postgres
+      state: directory
+      mode: 0700
 
-  - name: Enable database service on boot
-    systemd:
-      name: postgresql-12
-      state: started
-      enabled: yes
+  - name: check if postgresql database is initialized
+    stat:
+      path: /var/lib/pgsql/12/data/PG_VERSION
+    register: postgresql_data_version
+
+  - name: ensure postgresql database is initialized
+    command: /usr/pgsql-12/bin/postgresql-12-setup initdb -D /var/lib/pgsql/12/data
+    when: not /var/lib/pgsql/12/data/PG_VERSION.stat.exists
+    become: true
+    become_user: postgres
+
+
+  #- name: Enable database service on boot
+  #  systemd:
+  #    name: postgresql-12
+  #    state: started
+  #    enabled: yes
 
   #- name: Open postgresql service on firewall
   #  firewalld:
