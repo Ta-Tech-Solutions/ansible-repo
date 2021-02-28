@@ -29,7 +29,7 @@
 
   - name: ensure postgresql database is initialized
     command: /usr/pgsql-12/bin/postgresql-12-setup initdb 
-    when: not /var/lib/pgsql/12/data/PG_VERSION.stat.exists
+  #  when: not /var/lib/pgsql/12/data/PG_VERSION.stat.exists
     become: true
     become_user: postgres
 
