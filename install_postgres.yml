@@ -1,6 +1,6 @@
 ---
 - name: Install PostgreSQL 12 packages
-  dnf:
+  yum:
     name:
     - postgresql12
     - postgresql12-server
