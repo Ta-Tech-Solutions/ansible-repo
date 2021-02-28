@@ -6,10 +6,10 @@
 
   - name: Install PostgreSQL 12 packages
     yum:
-      name:
-      - postgresql12
-      - postgresql12-server
-      - postgresql12-contrib
+      name: postgresql
+#      - postgresql12
+#      - postgresql12-server
+#      - postgresql12-contrib
       state: present
 
   - name: Enable database service on boot
