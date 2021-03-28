@@ -1,0 +1,265 @@
+RepMGR Documentation
+
+#--------------------------------------------
+# managing servers
+#--------------------------------------------
+
+- provision all servers with the required postgresql version installed.
+
+- Install repmgr on master node using
+
+  $ yum install repmgr_(postgresql version)
+
+  e.g $ yum install repmgr_10
+
+#--------------------------------------------------
+# Ensure connection amongs servers without password using ssh-keygen
+#--------------------------------------------------
+
+- Configure ssh on all machine to enable free connection password using ssh-keygen
+
+run as postgres user at postgres home dir => ssh-keygen
+
+cd into .ssh/ 
+
+copy public key into authorized_keys of all other servers.
+
+
+#--------------------------------------------
+# ON THE MASTER
+#--------------------------------------------
+
+- max_wal_senders = 10
+
+- max_replication_slots = 10
+
+- wal_level = 'hot_standby' or 'replica' or 'logical'
+
+- hot_standby = on
+
+- archive_mode = on
+
+- archive_command = '/bin/true'
+
+- shared_preload_libraries = 'repmgr'
+
+- wal_level = 'hot_standby'
+
+- wal_log_hints = 'on'
+
+#---------------------------------------------
+#Log into MASTER database 
+#---------------------------------------------
+
+- create user repmgr with replication
+
+- create database repmgr with owner repmgr
+
+- create extension repmgr (on all database)
+#------------------------------------------
+# configure the following in repmgr config
+#------------------------------------------
+
+# change the ownership of repmgr.conf to postgres (chown postgres:postgres repmgr)
+
+- cluster='failovertest'
+
+- node_id=1
+
+- node_name=node1
+
+- conninfo='host=node1 user=repmgr dbname=repmgr connect_timeout=2'
+
+- data_directory='/var/lib/pgsql/10/data/'
+
+- failover=automatic
+
+- promote_command='/usr/pgsql-10/bin/repmgr standby promote -f /etc/repmgr/10/repmgr.conf --log-to-file'
+
+- follow_command='/usr/pgsql-10/bin/repmgr standby follow -f /etc/repmgr/10/repmgr.conf --log-to-file --upstream-node-id=%n'
+
+- reconnect_attempts=3
+
+- reconnect_interval=5
+
+- ssh_options='-q -o StrictHostKeyChecking=no -o ConnectTimeout=10'
+
+#-----------------------------------------------------
+#  HBA.Conf
+#-----------------------------------------------------
+
+local      replication      repmgr                                trust
+host       replication      repmgr        127.0.0.1/32            trust
+host       replication      repmgr        192.168.1.0/24          trust
+
+local      repmgr           repmgr                                trust
+host       repmgr           repmgr        127.0.0.1/32            trust
+host       repmgr           repmgr        192.168.1.0/24          trust
+
+#-----------------------------------------------------
+# Register the Primary
+#-----------------------------------------------
+
+- /usr/pgsql-10/bin/repmgr -f /etc/repmgr/10/repmgr.conf primary register
+
+#-------------------------------------------------------
+# Run show command which will show you that it is a registered database.
+#--------------------------------------------------------
+
+/usr/pgsql-10/bin/repmgr -f /etc/repmgr/10/repmgr.conf  cluster show
+
+#--------------------------------------------------------
+# On the standby 
+#--------------------------------------------------------
+
+node_id=2
+
+node_name=node2
+
+conninfo='host=172.16.140.137 user=repmgr dbname=repmgr connect_timeout=2'
+
+data_directory='/var/lib/pgsql/12/data'
+
+failover=automatic
+
+promote_command='/usr/pgsql-10/bin/repmgr standby promote -f /etc/repmgr/10/repmgr.conf --log-to-file'
+
+follow_command='/usr/pgsql-10/bin/repmgr standby follow -f /etc/repmgr/10/repmgr.conf --log-to-file --upstream-node-id=%n'
+
+
+#-------------------------------------------
+# also add standby IP on the Masters pg_hba.conf
+#--------------------------------------------
+
+- so on the MASTER make sure to add the IP of standby for it to connect for replication
+
+
+#----------------------------------------------------------------
+# check if connection is ok by using this command for a dry-run
+#-----------------------------------------------------------------
+
+/usr/pgsql-10/bin/repmgr -h 192.168.76.206 -U repmgr -d repmgr -f /etc/repmgr/10/repmgr.conf standby clone --dry-run
+
+
+#---------------
+# then Clone
+#---------------
+
+/usr/pgsql-10/bin/repmgr -h 192.168.76.206 -U repmgr -d repmgr -f /etc/repmgr/10/repmgr.conf standby clone
+
+
+#------------------
+# Register
+#-----------------
+
+- /usr/pgsql-10/bin/repmgr -f /var/lib/pgsql/repmgr.conf standby register
+
+### To register a stnadby which is not up and running, add primary conn info
+
+- /usr/pgsql-10/bin/repmgr -h 192.168.76.206 -U repmgr -d repmgr -F -f /etc/repmgr/10/repmgr.conf standby register
+
+
+#----------------------
+# Event status => tells you what events has happens on repmgr
+#---------------------
+
+/usr/pgsql-10/bin/repmgr -f /etc/repmgr/10/repmgr.conf cluster event
+
+#---------------
+# switch over command  -- ensure to change host to IP of STANDBY
+#---------------
+
+-- dry run 
+
+/usr/pgsql-10/bin/repmgr --dry-run -h standby standby switchover --siblings-follow
+
+- full run 
+
+repmgr -h standby standby switchover --siblings-follow
+
+#---------------------
+# automatic failover command --repmgr deamon -- it activiates the auto failover
+#---------------------
+
+/usr/pgsql-10/bin/repmgrd -f /etc/repmgr/10/repmgr.conf
+
+
+#----------------
+# cluster rejoin
+#-------------
+
+/usr/pgsql-10/bin/repmgr node rejoin -f /etc/repmgr/10/repmgr.conf -d 'host=192.168.76.206 dbname=repmgr user=repmgr' --force-rewind --config-files=postgresql.local.conf,postgresql.conf --verbose --dry-run
+
+
+#----------------------------------------
+# RSYNC -- when master is down and replica becomes new master, to add old master as replica, do the following
+#-----------------------------------------
+
+/usr/pgsql-10/bin/repmgr -f /etc/repmgr/10/repmgr.conf --force --rsync-only -d repmgr -U repmgr --verbose standby clone --dry-run
+
+/usr/pgsql-10/bin/repmgr -f /etc/repmgr/10/repmgr.conf --force standby register
+
+#---------------------------------------------------------------------------------------------------------------
+
+
+#----------------------------------
+# Creating a witness
+#----------------------------------
+
+/usr/pgsql-10/bin/repmgr -f /etc/repmgr.conf -h node1 -U repmgr -d repmgr witness register
+1. Create a machine. Enable ssh between all three machines.
+2. Install PostgreSQL and repmgr
+3. configure repmgr.conf like primary or standby as we did earlier.
+4. configure pg_hba.conf as we did earlier.
+5. run the PostgreSQL and create instance and user and database repmgr
+6, Register node 3 as witness of primary node
+7. ----+---------------+---------+-----------+---------------+---------+------+---------+--------------------
+101 | base-centos-1 | primary | * running | | running | 5496 | no | n/a
+102 | base-centos-2 | standby | running | base-centos-1 | running | 3414 | no | 1 second(s) ago
+103 | base-centos-3 | standby | running | base-centos-1 | running | 4549 | no | 1 second(s) ago
+104 | base-centos-4 | witness | * running | base-centos-1 | running | 3226 | no | 0 second(s) ago
+8. repmgr daemon start repmgr daemon status'
+
+SCENARIO
+
+node 1 is primary
+node 2 is standby
+node 3 standby
+if primary goes down if u don't have witness setup..
+we will have 2 standby running.
+From anup to Everyone:  08:08 AM
+promote standby node 2 as primary
+repmgr -f /etc/repmgr.conf standby promote
+node 2 is primary , node 3 is standby of node 1.
+repmgr -f /etc/repmgr.conf standby follow
+-h node 2
+repmgr -f /etc/repmgr.conf  -h node 2 standby follow
+https://repmgr.org/docs/4.4/promoting-standby.html
+https://repmgr.org/docs/4.4/follow-new-primary.html
+
+
+
+
+repmgr primary register — initialise a repmgr installation and register the primary node
+repmgr primary unregister — unregister an inactive primary node
+repmgr standby clone — clone a PostgreSQL standby node from another PostgreSQL node
+repmgr standby register — add a standby's information to the repmgr metadata
+repmgr standby unregister — remove a standby's information from the repmgr metadata
+repmgr standby promote — promote a standby to a primary
+repmgr standby follow — attach a running standby to a new upstream node
+repmgr standby switchover — promote a standby to primary and demote the existing primary to a standby
+repmgr witness register — add a witness node's information to the repmgr metadata
+repmgr witness unregister — remove a witness node's information to the repmgr metadata
+repmgr node status — show overview of a node's basic information and replication status
+repmgr node check — performs some health checks on a node from a replication perspective
+repmgr node rejoin — rejoin a dormant (stopped) no
+
+#------------
+# restart the repmgr services
+#------------
+
+/usr/pgsql-10/bin/repmgr -f /etc/repmgr/10/repmgr.conf node service --list
+
+/usr/pgsql-10/bin/repmgr -f /etc/repmgr/10/repmgr.conf node service --list --action=restart
+
+
