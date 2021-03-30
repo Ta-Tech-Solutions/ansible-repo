@@ -26,7 +26,7 @@ copy public key into authorized_keys of all other servers.
 
 
 #--------------------------------------------
-# ON THE MASTER
+# ON THE MASTER server
 #--------------------------------------------
 
 - max_wal_senders = 10
